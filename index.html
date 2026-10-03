@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QR Cafe Ordering Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f6f4;--card:#fff;--ink:#17332e;--mut:#667a75;--pine:#123c35;--gold:#f2b134;--red:#d94f3d;--line:#dbe5e1;--on:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1f1c;--card:#172a26;--ink:#e6f0ed;--mut:#8fa59f;--line:#27403a}}
+:root[data-theme="dark"]{--bg:#0f1f1c;--card:#172a26;--ink:#e6f0ed;--mut:#8fa59f;--line:#27403a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 'DM Sans',system-ui,sans-serif}
+h1,h2,h3{font-family:'Bricolage Grotesque',Georgia,serif;margin:0}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:8px 14px;background:var(--line);color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button.p{background:#123c35;color:#fff}button.g{background:var(--gold);color:#17332e;font-weight:700}button.d{background:none;color:var(--red)}
+input,select{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%}
+header{background:#123c35;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+.logo{width:40px;height:40px;border-radius:12px;background:var(--gold);display:grid;place-items:center;font-size:22px}
+.brand{flex:1;min-width:140px}.brand b{font:700 18px 'Bricolage Grotesque',serif;display:block}.brand small{opacity:.7}
+.sw{display:flex;gap:4px;background:#0c2c27;padding:4px;border-radius:12px}.sw button{background:none;color:#cfe3de;padding:6px 12px}.sw button.on{background:var(--gold);color:#17332e;font-weight:700}
+main{max-width:980px;margin:0 auto;padding:16px 16px 110px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px}.chips button{white-space:nowrap}.chips .on{background:#123c35;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.item{display:flex;flex-direction:column;gap:6px}.em{font-size:34px}.pr{font-weight:700}.mut{color:var(--mut)}
+.q{display:flex;align-items:center;gap:10px}.q button{width:34px;height:34px;padding:0}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:#123c35;color:#fff;display:flex;justify-content:space-between;align-items:center;z-index:6}
+.tag{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700}
+.Empty{background:#dff1e7;color:#1c6b43}.Waiting{background:#fde8b8;color:#7a4e00}.Preparing{background:#d7e6fb;color:#1d4c8f}.Served{background:#e1ddf5;color:#43338a}.Reserved{background:#f6d5d0;color:#8f2a1c}.Placed{background:#fde8b8;color:#7a4e00}
+.tg{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}.stats b{font:700 26px 'Bricolage Grotesque',serif;display:block}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.hb{height:10px;border-radius:6px;background:var(--gold)}
+.modal{position:fixed;inset:0;background:#0008;z-index:9;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:520px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px}
+.steps{display:flex;gap:6px;margin:12px 0}.steps div{flex:1;text-align:center;padding:10px 4px;border-radius:10px;background:var(--line);color:var(--mut);font-weight:700;font-size:13px}.steps .on{background:#123c35;color:#fff}
+.star{font-size:30px;background:none;padding:0 2px;color:var(--line)}.star.on{color:var(--gold)}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.note{background:var(--card);border:1px dashed var(--mut);border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+</style></head><body>
+<header>
+ <div class="logo" id="lg"></div>
+ <div class="brand"><b id="bn"></b><small id="bt"></small></div>
+ <button id="hc" class="g" style="display:none" onclick="cartOpen()"></button>
+ <div class="sw"><button id="mc" onclick="mode('c')">Customer</button><button id="ma" onclick="mode('a')">Admin</button></div>
+</header>
+<main id="app"></main>
+<div id="foot"></div><div id="md"></div>
+<script>
+// ===== BRAND CONFIG: change per client =====
+const BRAND={logo:"☕",name:"Your Cafe Name",tag:"Scan. Order. Enjoy.",currency:"₹"};
+// ===========================================
+const C=BRAND.currency,$=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+let uid=100;
+const S={mode:'c',table:5,cat:'All',cart:{},pay:'UPI',rate:0,tab:'dash',per:'day',my:null,reserved:{3:1,8:1},reviews:[
+ {t:2,r:5,c:"Loved the cold coffee!",d:Date.now()-864e5},{t:7,r:4,c:"Quick service.",d:Date.now()-2*864e5}],
+ menu:[
+ {id:1,n:"Cappuccino",c:"Coffee",p:140,e:"☕"},{id:2,n:"Cold Coffee",c:"Coffee",p:160,e:"🧋"},{id:3,n:"Masala Chai",c:"Coffee",p:60,e:"🍵"},
+ {id:4,n:"French Fries",c:"Snacks",p:110,e:"🍟"},{id:5,n:"Veg Sandwich",c:"Snacks",p:130,e:"🥪"},{id:6,n:"Garlic Bread",c:"Snacks",p:120,e:"🥖"},
+ {id:7,n:"Margherita Pizza",c:"Meals",p:260,e:"🍕"},{id:8,n:"Pasta Alfredo",c:"Meals",p:240,e:"🍝"},
+ {id:9,n:"Brownie",c:"Desserts",p:120,e:"🍫"},{id:10,n:"Cheesecake",c:"Desserts",p:180,e:"🍰"},
+ {id:11,n:"Coffee + Sandwich Combo",c:"Combos",p:230,e:"🎁"}],orders:[]};
+// seed 30 days of history
+(function(){let s=7,r=()=>(s=(s*9301+49297)%233280)/233280;
+ for(let i=0;i<70;i++){const its=[],k=1+Math.floor(r()*3);let tot=0;
+  for(let j=0;j<k;j++){const m=S.menu[Math.floor(r()*10)],q=1+Math.floor(r()*2);its.push({n:m.n,q,p:m.p});tot+=m.p*q}
+  S.orders.push({id:i+1,table:1+Math.floor(r()*12),items:its,total:tot,status:'Served',pay:'UPI',t:Date.now()-Math.floor(r()*30*864e5)})}})();
+const cats=()=>['All',...new Set(S.menu.map(m=>m.c))];
+const cartItems=()=>Object.entries(S.cart).map(([id,q])=>({m:S.menu.find(x=>x.id==id),q})).filter(x=>x.m&&x.q>0);
+const cartTotal=()=>cartItems().reduce((a,x)=>a+x.m.p*x.q,0);
+function mode(m){S.mode=m;$('md').innerHTML='';render()}
+function render(){
+ $('hc').style.display='none';$('lg').textContent=BRAND.logo;$('bn').textContent=BRAND.name;
+ $('bt').textContent=S.mode=='c'?BRAND.tag+' · Table '+S.table:'Admin panel';
+ $('mc').className=S.mode=='c'?'on':'';$('ma').className=S.mode=='a'?'on':'';
+ S.mode=='c'?customer():admin()}
+// ---------- CUSTOMER ----------
+function customer(){
+ if(S.my){return tracker()}
+ const list=S.menu.filter(m=>S.cat=='All'||m.c==S.cat);
+ $('app').innerHTML=`<div class="note">Demo: this page opens when a guest scans the QR on their table. Each table's QR carries its number (e.g. <b>/menu?table=${S.table}</b>).
+ <select style="width:auto;margin-left:6px" onchange="S.table=+this.value;render()">${[...Array(12)].map((_,i)=>`<option ${i+1==S.table?'selected':''} value="${i+1}">Table ${i+1}</option>`).join('')}</select></div>
+ <h2 style="margin-bottom:8px">Menu</h2>
+ <div class="chips">${cats().map(c=>`<button class="${c==S.cat?'on':''}" onclick="S.cat='${c}';render()">${c}</button>`).join('')}</div>
+ <div class="grid">${list.map(m=>`<div class="card item"><div class="em">${m.e}</div><b>${esc(m.n)}</b><span class="mut">${m.c}</span>
+ <div class="row" style="border:0;padding:0"><span class="pr">${C}${m.p}</span>${S.cart[m.id]?`<span class="q"><button onclick="cq(${m.id},-1)">−</button>${S.cart[m.id]}<button class="g" onclick="cq(${m.id},1)">+</button></span>`:`<button class="p" onclick="cq(${m.id},1)">Add</button>`}</div></div>`).join('')}</div>`;
+ const n=Object.values(S.cart).reduce((a,b)=>a+b,0);
+ if(n){$('hc').style.display='';$('hc').textContent='🛒 '+n+' · '+C+cartTotal()+' — Place order';
+  $('app').insertAdjacentHTML('beforeend',`<div class="card" style="margin-top:16px;border:2px solid var(--gold)"><h3>Your order · ${n} item${n>1?'s':''}</h3>
+  ${cartItems().map(x=>`<div class="row"><span>${x.m.e} ${esc(x.m.n)} × ${x.q}</span><b>${C}${x.m.p*x.q}</b></div>`).join('')}
+  <div class="row"><b>Total</b><b>${C}${cartTotal()}</b></div>
+  <button class="g" style="width:100%;padding:14px;margin-top:8px;font-size:16px" onclick="cartOpen()">Place order</button></div>`)}
+ $('foot').innerHTML=n?`<div class="bar"><span>${n} item${n>1?'s':''} · <b>${C}${cartTotal()}</b></span><span><button onclick="S.cart={};render()" style="margin-right:6px">Clear</button><button class="g" onclick="cartOpen()">Place order →</button></span></div>`:''}
+function cq(id,d){S.cart[id]=Math.max(0,(S.cart[id]||0)+d);if(!S.cart[id])delete S.cart[id];render()}
+function cartOpen(){
+ const it=cartItems();
+ $('md').innerHTML=`<div class="modal" onclick="if(event.target==this)this.remove()"><div class="sheet"><h2>Your order · Table ${S.table}</h2>
+ ${it.map(x=>`<div class="row"><span>${x.m.e} ${esc(x.m.n)}</span><span class="q"><button onclick="cq(${x.m.id},-1);S.cart[${x.m.id}]?cartOpen():closeM()">−</button>${x.q}<button onclick="cq(${x.m.id},1);cartOpen()">+</button></span><b>${C}${x.m.p*x.q}</b></div>`).join('')}
+ <div class="row"><b>Total</b><b>${C}${cartTotal()}</b></div>
+ <h3 style="margin:14px 0 8px">Payment method</h3>
+ <div class="f">${['UPI','Card','Cash at table'].map(p=>`<button class="${S.pay==p?'p':''}" onclick="S.pay='${p}';cartOpen()">${p}</button>`).join('')}</div>
+ <button class="g" style="width:100%;padding:12px" onclick="place()">${S.pay=='Cash at table'?'Place order':'Pay '+C+cartTotal()+' &amp; place order'}</button></div></div>`}
+function closeM(){$('md').innerHTML=''}
+function place(){
+ const it=cartItems();if(!it.length)return;
+ const o={id:++uid,table:S.table,items:it.map(x=>({n:x.m.n,q:x.q,p:x.m.p})),total:cartTotal(),status:'Placed',pay:S.pay,t:Date.now()};
+ S.orders.push(o);S.my=o.id;S.cart={};S.cat='All';S.pay='UPI';closeM();render();
+ $('app').insertAdjacentHTML('afterbegin',`<div class="note" style="border-style:solid;border-color:#1c6b43">✅ Order #${o.id} placed! Your food will be served to Table ${o.table}.</div>`);window.scrollTo(0,0)}
+function tracker(){
+ const o=S.orders.find(x=>x.id==S.my),st=['Placed','Preparing','Served'],i=st.indexOf(o.status);$('foot').innerHTML='';
+ $('app').innerHTML=`<div class="card"><h2>Order #${o.id} · Table ${o.table}</h2><p class="mut">We'll bring it to your table. Payment: ${o.pay}.</p>
+ <div class="steps">${st.map((s,k)=>`<div class="${k<=i?'on':''}">${s=='Served'?'Served':s}</div>`).join('')}</div>
+ ${o.items.map(x=>`<div class="row"><span>${x.q}× ${esc(x.n)}</span><span>${C}${x.p*x.q}</span></div>`).join('')}
+ <div class="row"><b>Total</b><b>${C}${o.total}</b></div>
+ <p class="mut" style="font-size:13px">Demo tip: switch to Admin → Orders and move this order forward.</p></div>
+ <div class="card" style="margin-top:12px"><h3>How was it?</h3><div>${[1,2,3,4,5].map(n=>`<button class="star ${S.rate>=n?'on':''}" aria-label="${n} stars" onclick="S.rate=${n};render()">★</button>`).join('')}</div>
+ <input id="fc" placeholder="Tell us more (optional)" style="margin:8px 0"><button class="p" onclick="fb()">Send feedback</button></div>
+ <button style="margin-top:12px" onclick="S.my=null;S.rate=0;render()">Order more</button>`}
+function fb(){if(!S.rate)return alert('Pick a star rating first.');
+ S.reviews.unshift({t:S.table,r:S.rate,c:$('fc').value||'',d:Date.now()});S.rate=0;$('app').insertAdjacentHTML('afterbegin','<div class="note">Thanks! Your feedback was sent.</div>')}
+// ---------- ADMIN ----------
+function admin(){
+ $('foot').innerHTML='';
+ const tabs=[['dash','Dashboard'],['tables','Tables'],['orders','Orders'],['menu','Menu'],['combo','Combos'],['rev','Reviews']];
+ const fns={dash,tables,orders,menu,combo,rev};
+ $('app').innerHTML=`<div class="chips">${tabs.map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="S.tab='${t[0]}';render()">${t[1]}</button>`).join('')}</div>`+fns[S.tab]()}
+function inPer(o){const d=Date.now()-o.t;return S.per=='day'?new Date(o.t).toDateString()==new Date().toDateString():d<(S.per=='week'?7:30)*864e5}
+function dash(){
+ const os=S.orders.filter(inPer),rev=os.reduce((a,o)=>a+o.total,0),cnt={};
+ os.forEach(o=>o.items.forEach(i=>cnt[i.n]=(cnt[i.n]||0)+i.q));
+ const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,6),mx=top[0]?top[0][1]:1;
+ return `<div class="chips">${[['day','Today'],['week','This week'],['month','This month']].map(p=>`<button class="${S.per==p[0]?'p':''}" onclick="S.per='${p[0]}';render()">${p[1]}</button>`).join('')}</div>
+ <div class="stats"><div class="card"><span class="mut">Total sales</span><b>${C}${rev}</b></div><div class="card"><span class="mut">Orders</span><b>${os.length}</b></div>
+ <div class="card"><span class="mut">Avg order</span><b>${C}${os.length?Math.round(rev/os.length):0}</b></div></div>
+ <div class="card"><h3 style="margin-bottom:8px">Most ordered items</h3>${top.length?top.map(t=>`<div class="row"><span style="min-width:150px">${esc(t[0])}</span><div style="flex:1"><div class="hb" style="width:${t[1]/mx*100}%"></div></div><b>${t[1]}</b></div>`).join(''):'<p class="mut">No orders in this period yet.</p>'}</div>`}
+function tstat(n){
+ if(S.reserved[n])return 'Reserved';
+ const a=S.orders.filter(o=>o.table==n&&Date.now()-o.t<36e5&&o.id>100).slice(-1)[0];
+ return a?(a.status=='Placed'?'Waiting':a.status):'Empty'}
+function tables(){
+ return `<p class="mut">Live table status. Tap Reserve/Free to change a table.</p><div class="tg">${[...Array(12)].map((_,i)=>{const n=i+1,s=tstat(n);
+ return `<div class="card"><b>Table ${n}</b><br><span class="tag ${s}">${s=='Waiting'?'Order placed':s}</span><br>
+ ${s=='Empty'||s=='Reserved'?`<button style="margin-top:8px" onclick="rsv(${n})">${s=='Reserved'?'Free table':'Reserve'}</button>`:''}</div>`}).join('')}</div>`}
+function rsv(n){S.reserved[n]?delete S.reserved[n]:S.reserved[n]=1;render()}
+function orders(){
+ const l=S.orders.filter(o=>o.id>100||o.status!='Served').slice().reverse();
+ return l.length?l.map(o=>`<div class="card" style="margin-bottom:10px"><div class="row" style="border:0"><b>#${o.id} · Table ${o.table}</b><span class="tag ${o.status}">${o.status}</span></div>
+ <div class="mut">${o.items.map(i=>i.q+'× '+esc(i.n)).join(', ')}</div><div class="row" style="border:0"><b>${C}${o.total} · ${o.pay}</b>
+ ${o.status!='Served'?`<button class="g" onclick="adv(${o.id})">${o.status=='Placed'?'Start preparing':'Mark served'}</button>`:''}</div></div>`).join(''):'<p class="mut">No live orders yet. Place one from the Customer view.</p>'}
+function adv(id){const o=S.orders.find(x=>x.id==id);o.status=o.status=='Placed'?'Preparing':'Served';render()}
+function menu(){
+ return `<div class="card" style="margin-bottom:12px"><h3 style="margin-bottom:8px">Add new item</h3><div class="f"><input id="an" placeholder="Item name"><input id="ac" placeholder="Category"><input id="ap" type="number" placeholder="Price"><input id="ae" placeholder="Emoji" maxlength="2"></div><button class="p" onclick="addI()">Add item</button></div>
+ <div class="card">${S.menu.filter(m=>m.c!='Combos').map(m=>itemRow(m)).join('')}</div>`}
+function itemRow(m){return `<div class="row"><span>${m.e} ${esc(m.n)} <span class="mut">(${esc(m.c)})</span></span><span class="q">${C}<input type="number" value="${m.p}" style="width:84px" onchange="S.menu.find(x=>x.id==${m.id}).p=+this.value||0"><button class="d" onclick="del(${m.id})">Delete</button></span></div>`}
+function addI(){const n=$('an').value.trim(),p=+$('ap').value;if(!n||!p)return alert('Enter a name and a price.');
+ S.menu.push({id:++uid,n,c:$('ac').value.trim()||'Snacks',p,e:$('ae').value||'🍽️'});render()}
+function del(id){S.menu=S.menu.filter(m=>m.id!=id);delete S.cart[id];render()}
+function combo(){
+ const base=S.menu.filter(m=>m.c!='Combos');
+ return `<div class="card" style="margin-bottom:12px"><h3 style="margin-bottom:8px">Create an offer combo</h3><input id="cn" placeholder="Combo name, e.g. Sunday Special" style="margin-bottom:8px">
+ <div class="f">${base.map(m=>`<label><input type="checkbox" class="cb" value="${m.id}" style="width:auto"> ${esc(m.n)} (${C}${m.p})</label>`).join('')}</div>
+ <input id="cp" type="number" placeholder="Combo price" style="margin-bottom:8px"><button class="g" onclick="addC()">Publish combo</button></div>
+ <div class="card"><h3>Live combos</h3>${S.menu.filter(m=>m.c=='Combos').map(itemRow).join('')||'<p class="mut">None yet.</p>'}</div>`}
+function addC(){const n=$('cn').value.trim(),p=+$('cp').value,ids=[...document.querySelectorAll('.cb:checked')].map(x=>+x.value);
+ if(!n||!p||ids.length<2)return alert('Name it, pick at least 2 items and set a price.');
+ S.menu.push({id:++uid,n,c:'Combos',p,e:'🎁'});render()}
+function rev(){
+ const a=S.reviews,avg=a.length?(a.reduce((x,r)=>x+r.r,0)/a.length).toFixed(1):'–';
+ return `<div class="stats"><div class="card"><span class="mut">Average rating</span><b>${avg} ★</b></div><div class="card"><span class="mut">Reviews</span><b>${a.length}</b></div></div>
+ <div class="card">${a.map(r=>`<div class="row"><span>${'★'.repeat(r.r)}<span class="mut">${'★'.repeat(5-r.r)}</span> ${esc(r.c)}</span><span class="mut">Table ${r.t}</span></div>`).join('')}</div>`}
+render();
+</script></body></html>
